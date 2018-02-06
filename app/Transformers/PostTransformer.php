@@ -17,6 +17,10 @@ class PostTransformer extends TransformerAbstract
 
     public function includeUser(Post $post)
     {
+        if (! $post->user) {
+            return $this->null();
+        }
+
         return $this->item($post->user, new UserTransformer());
     }
 
@@ -29,13 +33,11 @@ class PostTransformer extends TransformerAbstract
         }
 
         $comments = $post->comments()->limit($limit)->get();
-        $total = $post->comments()->count();
 
         return $this->collection($comments, new CommentTransformer())
             ->setMeta([
                 'limit' => $limit,
                 'count' => $comments->count(),
-                'total' => $post->comments()->count(),
             ]);
     }
 
@@ -45,21 +47,14 @@ class PostTransformer extends TransformerAbstract
      * 所以可以增加一个recentComments, 增加一个limit条件
      * 但是依然不够完美.
      */
-    public function includeRecentComments(Post $post, ParamBag $params = null)
+    public function includeRecentComments(Post $post)
     {
-        if ($limit = $params->get('limit')) {
-            $limit = (int) current($limit);
-        } else {
-            $limit = 15;
-        }
-
-        $comments = $post->recentComments($limit)->get();
+        // 倒叙
+        $comments = $post->recentComments->sortByDesc('id');
 
         return $this->collection($comments, new CommentTransformer())
             ->setMeta([
-                'limit' => $limit,
                 'count' => $comments->count(),
-                'total' => $post->comments()->count(),
             ]);
     }
 }
